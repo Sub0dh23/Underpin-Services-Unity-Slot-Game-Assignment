@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0af120f620a7a604e8eed79eb9d83d59, type: 3}
+  m_Name: Symbol_Wild
+  m_EditorClassIdentifier: Assembly-CSharp::Underpin.SlotGame.Data.SymbolData
+  symbolId: symbol_wild
+  symbolName: Wild Joker
+  symbolType: 1
+  icon: {fileID: -4945717182177459964, guid: 94ee064c2ac43da4d95fe7664b49716e, type: 3}
+  highlightColor: {r: 0.9, g: 0.2, b: 1, a: 1}
+  dropWeight: 30
+  payout3Match: 100
+  payout2Match: 10

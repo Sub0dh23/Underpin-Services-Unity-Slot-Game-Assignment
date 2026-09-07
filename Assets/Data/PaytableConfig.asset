@@ -1,0 +1,78 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c871ada6aa085bc4ba9829dfcc63b01d, type: 3}
+  m_Name: PaytableConfig
+  m_EditorClassIdentifier: Assembly-CSharp::Underpin.SlotGame.Data.PaytableConfig
+  symbols:
+  - {fileID: 11400000, guid: c357829f3f2ab3d4db5eedeea05230e4, type: 2}
+  - {fileID: 11400000, guid: 254e4cdd14c41a6488d73b1a00528e8d, type: 2}
+  - {fileID: 11400000, guid: 15f512e7b512fdd4a85ac951a254c7a6, type: 2}
+  - {fileID: 11400000, guid: d911b23c2c5ccef43a6996df8fbcf706, type: 2}
+  paylines:
+  - lineName: Top Line
+    lineId: 1
+    coordinates:
+    - reelIndex: 0
+      rowIndex: 0
+    - reelIndex: 1
+      rowIndex: 0
+    - reelIndex: 2
+      rowIndex: 0
+    lineColor: {r: 0.2, g: 0.8, b: 1, a: 1}
+  - lineName: Center Line
+    lineId: 2
+    coordinates:
+    - reelIndex: 0
+      rowIndex: 1
+    - reelIndex: 1
+      rowIndex: 1
+    - reelIndex: 2
+      rowIndex: 1
+    lineColor: {r: 1, g: 0.8, b: 0.2, a: 1}
+  - lineName: Bottom Line
+    lineId: 3
+    coordinates:
+    - reelIndex: 0
+      rowIndex: 2
+    - reelIndex: 1
+      rowIndex: 2
+    - reelIndex: 2
+      rowIndex: 2
+    lineColor: {r: 0.4, g: 1, b: 0.4, a: 1}
+  - lineName: Diagonal Down
+    lineId: 4
+    coordinates:
+    - reelIndex: 0
+      rowIndex: 0
+    - reelIndex: 1
+      rowIndex: 1
+    - reelIndex: 2
+      rowIndex: 2
+    lineColor: {r: 1, g: 0.4, b: 0.8, a: 1}
+  - lineName: Diagonal Up
+    lineId: 5
+    coordinates:
+    - reelIndex: 0
+      rowIndex: 2
+    - reelIndex: 1
+      rowIndex: 1
+    - reelIndex: 2
+      rowIndex: 0
+    lineColor: {r: 1, g: 0.5, b: 0.2, a: 1}
+  startingBalance: 1000
+  betAmounts: 0a000000140000003200000064000000c8000000f4010000
+  defaultBetIndex: 1
+  scatterTriggerCount: 3
+  freeSpinsAwarded: 10
+  freeSpinsWinMultiplier: 2
+  bigWinMultiplierThreshold: 10
+  megaWinMultiplierThreshold: 25
