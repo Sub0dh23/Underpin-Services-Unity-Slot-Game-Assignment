@@ -1,8 +1,6 @@
 # Unity generated
 /[Aa]ssets/AssetStoreTools*
-/[Bb]uild/
 /[Bb]uilds/
-!/Build/WebGL/
 /[Ll]ibrary/
 /[Ll]ocal[Cc]ache/
 /[Ll]ogs/

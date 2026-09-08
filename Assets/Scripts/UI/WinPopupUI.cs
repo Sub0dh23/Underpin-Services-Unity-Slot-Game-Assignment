@@ -28,16 +28,19 @@ namespace Underpin.SlotGame.UI
         [SerializeField] private float defaultAutoDismissDelay = 2.5f;
 
         private Action _onDismissedCallback;
+        private Action<int> _onTallyTickCallback;
         private Coroutine _displayRoutine;
         private Color _originalBannerColor = Color.white;
         private Vector3 _originalTitleScale = Vector3.one;
         private Vector3 _originalAmountScale = Vector3.one;
+        private bool _isCounting = false;
+        private int _currentTargetAmount = 0;
 
         private void Awake()
         {
             if (dismissButton != null)
             {
-                dismissButton.onClick.AddListener(Dismiss);
+                dismissButton.onClick.AddListener(HandleUserClick);
             }
 
             if (popupBannerImage != null)
@@ -58,9 +61,13 @@ namespace Underpin.SlotGame.UI
             HideImmediate();
         }
 
-        public void ShowWin(int winAmount, bool isMegaWin, bool isBigWin, Action onComplete)
+        public void ShowWin(int winAmount, bool isMegaWin, bool isBigWin, Action onComplete, Action<int> onTallyTick = null)
         {
             _onDismissedCallback = onComplete;
+            _onTallyTickCallback = onTallyTick;
+            _currentTargetAmount = winAmount;
+            _isCounting = true;
+
             gameObject.SetActive(true);
             if (popupContainer != null) popupContainer.SetActive(true);
 
@@ -74,7 +81,7 @@ namespace Underpin.SlotGame.UI
 
             if (isMegaWin)
             {
-                titleStr = "<size=115%><color=#FFD700>★ MEGA WIN ★</color></size>";
+                titleStr = "<size=115%><color=#FFD700>MEGA WIN!</color></size>";
                 subStr = "<color=#FFE680>JACKPOT TIER COMBINATION!</color>";
                 bannerColor = new Color(1.0f, 0.72f, 0.05f, 1.0f); // Radiant Gold
                 countDuration = 2.0f;
@@ -83,7 +90,7 @@ namespace Underpin.SlotGame.UI
             }
             else if (isBigWin)
             {
-                titleStr = "<size=108%><color=#FFA500>★ BIG WIN! ★</color></size>";
+                titleStr = "<size=108%><color=#FFA500>BIG WIN!</color></size>";
                 subStr = "<color=#FFD280>SPECTACULAR WIN!</color>";
                 bannerColor = new Color(1.0f, 0.55f, 0.0f, 1.0f); // Amber Orange
                 countDuration = 1.4f;
@@ -111,12 +118,14 @@ namespace Underpin.SlotGame.UI
         public void ShowFreeSpinsTrigger(int freeSpinsCount, Action onComplete)
         {
             _onDismissedCallback = onComplete;
+            _isCounting = false;
+
             gameObject.SetActive(true);
             if (popupContainer != null) popupContainer.SetActive(true);
 
             if (titleText != null)
             {
-                titleText.text = "<size=115%><color=#FF00FF>★ FREE SPINS BONUS! ★</color></size>";
+                titleText.text = "<size=115%><color=#FF00FF>FREE SPINS BONUS!</color></size>";
             }
 
             if (winAmountText != null)
@@ -143,18 +152,45 @@ namespace Underpin.SlotGame.UI
             _displayRoutine = StartCoroutine(AnimateSimpleBanner(2.8f, 2.5f));
         }
 
+        public void HandleUserClick()
+        {
+            if (_isCounting)
+            {
+                // First click skips tally and fast-forwards directly to full amount
+                _isCounting = false;
+                if (winAmountText != null)
+                {
+                    winAmountText.text = $"+{_currentTargetAmount:N0}";
+                }
+                _onTallyTickCallback?.Invoke(_currentTargetAmount);
+            }
+            else
+            {
+                // Second click dismisses popup
+                Dismiss();
+            }
+        }
+
         public void Dismiss()
         {
+            _isCounting = false;
+
             if (_displayRoutine != null)
             {
                 StopCoroutine(_displayRoutine);
                 _displayRoutine = null;
             }
 
+            if (_currentTargetAmount > 0)
+            {
+                _onTallyTickCallback?.Invoke(_currentTargetAmount);
+            }
+
             ResetVisualTransforms();
             HideImmediate();
             _onDismissedCallback?.Invoke();
             _onDismissedCallback = null;
+            _onTallyTickCallback = null;
         }
 
         private void ResetVisualTransforms()
@@ -225,7 +261,7 @@ namespace Underpin.SlotGame.UI
             int lastSoundCount = 0;
             int tickStep = Mathf.Max(1, targetAmount / 12);
 
-            while (countTimer < countDuration)
+            while (countTimer < countDuration && _isCounting)
             {
                 countTimer += Time.deltaTime;
                 float progress = Mathf.Clamp01(countTimer / countDuration);
@@ -240,6 +276,9 @@ namespace Underpin.SlotGame.UI
                     float textBounce = 1.0f + (0.15f * Mathf.Sin(progress * Mathf.PI * 6f));
                     winAmountText.transform.localScale = _originalAmountScale * textBounce;
                 }
+
+                // Inform listeners (HUD balance and win bar) of synchronized progress
+                _onTallyTickCallback?.Invoke(currentVal);
 
                 // Title pulse for Mega/Big wins
                 if (titleText != null && (isMegaWin || isBigWin))
@@ -265,7 +304,10 @@ namespace Underpin.SlotGame.UI
                 yield return null;
             }
 
-            // Final value snap & impact punch
+            // Mark tally as completed & snap to exact final value
+            _isCounting = false;
+            _onTallyTickCallback?.Invoke(targetAmount);
+
             if (winAmountText != null)
             {
                 winAmountText.text = $"+{targetAmount:N0}";

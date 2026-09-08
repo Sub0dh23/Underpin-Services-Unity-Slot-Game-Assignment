@@ -79,26 +79,45 @@ The game simulates a premium classic 3-reel, 3-row slot machine with 5 active pa
    - **Bet +/- & Max Bet Buttons**: Adjusts bet per spin (10 to 500 credits).
    - **Paytable (?) Button**: Opens interactive payout breakdown dialog.
 
-### 2. Play WebGL Build (Local Server)
-Because modern web browsers enforce CORS restrictions on local `file:///` URLs for WebAssembly and WebGL data streams, run the WebGL build using any lightweight HTTP server:
+### 2. Play WebGL Build (Quick Evaluation)
 
-#### Option A: Python HTTP Server (Recommended)
+The WebGL build is located at: `Build/WebGL Desktop/`
+
+Because modern web browsers enforce CORS restrictions on local `file:///` URLs for WebAssembly (`.wasm`) and binary assets, run the build using any local HTTP server:
+
+#### Option A: Python HTTP Server (Fastest & Recommended)
+Run in terminal/PowerShell from the project root:
 ```bash
-# Navigate to the WebGL build output directory
-cd Build/WebGL
-
-# Launch local server
-python -m http.server 8080
+python -m http.server 8000 --directory "Build/WebGL Desktop"
 ```
-Open your browser and visit: `http://localhost:8080`
+👉 Open browser: **[http://localhost:8000](http://localhost:8000)**
 
 #### Option B: Node.js `npx serve`
 ```bash
-npx serve Build/WebGL -p 8080
+npx serve "Build/WebGL Desktop" -p 8000
 ```
+👉 Open browser: **[http://localhost:8000](http://localhost:8000)**
 
-#### Option C: Unity Build & Run
-- In Unity, go to **File > Build Profiles** (or **Build Settings**), select **WebGL**, and click **Build And Run**.
+#### Option C: VS Code Live Server / Antigravity
+- In your IDE, right-click `Build/WebGL Desktop/index.html` $\rightarrow$ **Open with Live Server**.
+
+#### Option D: Unity Editor "Build and Run"
+- In Unity Editor, open **File > Build Profiles** (or **Build Settings**), select **Web - Desktop - Development**, and click **Build and Run**.
+
+> **💡 Browser Audio Note:** Per modern browser autoplay policies, web audio unlocks after the first user interaction. Click anywhere on the game canvas or pull the lever to initialize audio.
+
+---
+
+### 🔍 Quick Evaluator Verification Checklist
+When evaluating the build, verify these core mechanics & "juice" details:
+- [x] **Mechanical Lever Handle**: Hover over the red knob for feedback; click to initiate full 4-stage pull-down, vibration hold, and elastic spring recoil.
+- [x] **Staggered Reel Deceleration**: Reels spin at high speed with top-buffer wrap, then stop sequentially (Left $\rightarrow$ Middle $\rightarrow$ Right) with overshoot bounce.
+- [x] **Near-Miss Scatter Anticipation**: When 2 Scatters land on reels 1 & 2, the landed scatters pulse with golden energy and the 3rd reel spins longer with tension audio.
+- [x] **Winning Symbol Highlight & Pulse**: Winning paylines trigger a coordinated scale-pulse and color-flash on matching symbols via `EasingHelper`.
+- [x] **Synchronized Score & Balance Rollup**: The win modal, bottom bar `WIN:`, and HUD `CREDITS:` roll up in 100% mathematical lockstep; clicking during tally instantly snaps to the final sum.
+- [x] **Distinct Big Win & Mega Win Modals**: Distinct animated banners, themes, particle flare, and sound fanfares for Big Win vs. Mega Win vs. Free Spins.
+- [x] **Free Spins Bonus Mode**: 3 Scatters award 10 Free Spins with a 2x win multiplier and dedicated active HUD banner.
+- [x] **Economy & Betting Controls**: Increase/decrease bet increments (10 to 500), Max Bet shortcut, and automated Auto Spin mode.
 
 
 ---

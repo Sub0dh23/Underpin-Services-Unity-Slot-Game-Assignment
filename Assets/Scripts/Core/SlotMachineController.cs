@@ -133,7 +133,7 @@ namespace Underpin.SlotGame.Core
 
             if (uiManager != null)
             {
-                uiManager.SetStatusMessage("<color=#FFD700>★ BONUS CHANCE! SCATTER ANTICIPATION... ★</color>");
+                uiManager.SetStatusMessage("<color=#FFD700>BONUS CHANCE! SCATTER ANTICIPATION...</color>");
             }
         }
 
@@ -262,14 +262,8 @@ namespace Underpin.SlotGame.Core
             {
                 SetState(GameState.WinCelebration);
 
-                // Update UI win amount
-                if (uiManager != null)
-                {
-                    uiManager.UpdateWin(result.TotalWinAmount);
-                }
-
-                // Award payout to balance
-                _economy.AddPayout(result.TotalWinAmount);
+                int preWinBalance = _economy.Balance;
+                int winAmount = result.TotalWinAmount;
 
                 // Highlight winning symbols on grid
                 if (reelController != null)
@@ -302,6 +296,9 @@ namespace Underpin.SlotGame.Core
                 if (result.IsFreeSpinsTriggered)
                 {
                     _economy.AwardFreeSpins(result.FreeSpinsAwarded);
+                    _economy.AddPayout(winAmount);
+                    if (uiManager != null) uiManager.UpdateWin(winAmount);
+
                     bool popupDone = false;
                     if (uiManager != null && uiManager.WinPopup != null)
                     {
@@ -314,12 +311,31 @@ namespace Underpin.SlotGame.Core
                     bool popupDone = false;
                     if (uiManager != null && uiManager.WinPopup != null)
                     {
-                        uiManager.WinPopup.ShowWin(result.TotalWinAmount, result.IsMegaWin, result.IsBigWin, () => popupDone = true);
+                        uiManager.WinPopup.ShowWin(winAmount, result.IsMegaWin, result.IsBigWin, 
+                            () => popupDone = true,
+                            (tallyVal) =>
+                            {
+                                if (uiManager != null)
+                                {
+                                    uiManager.UpdateWin(tallyVal);
+                                    uiManager.UpdateBalance(preWinBalance + tallyVal);
+                                }
+                            });
+
                         while (!popupDone) yield return null;
+                    }
+
+                    _economy.AddPayout(winAmount);
+                    if (uiManager != null)
+                    {
+                        uiManager.UpdateWin(winAmount);
+                        uiManager.UpdateBalance(_economy.Balance);
                     }
                 }
                 else
                 {
+                    _economy.AddPayout(winAmount);
+                    if (uiManager != null) uiManager.UpdateWin(winAmount);
                     yield return new WaitForSeconds(winCelebrationDelay);
                 }
             }
