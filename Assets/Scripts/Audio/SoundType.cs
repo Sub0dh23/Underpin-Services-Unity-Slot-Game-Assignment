@@ -12,7 +12,9 @@ namespace Underpin.SlotGame.Audio
         ReelStop,
         WinSmall,
         WinBig,
+        WinMega,
         FreeSpinsTrigger,
-        CoinsCollect
+        CoinsCollect,
+        Anticipation
     }
 }

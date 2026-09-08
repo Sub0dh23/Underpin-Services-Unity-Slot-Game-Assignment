@@ -23,8 +23,10 @@ namespace Underpin.SlotGame.Audio
         [SerializeField] private AudioClip reelStopClip;
         [SerializeField] private AudioClip winSmallClip;
         [SerializeField] private AudioClip winBigClip;
+        [SerializeField] private AudioClip winMegaClip;
         [SerializeField] private AudioClip freeSpinsClip;
         [SerializeField] private AudioClip coinsCollectClip;
+        [SerializeField] private AudioClip anticipationClip;
 
         private readonly Dictionary<SoundType, AudioClip> _synthClips = new Dictionary<SoundType, AudioClip>();
         private bool _isMuted = false;
@@ -91,10 +93,14 @@ namespace Underpin.SlotGame.Audio
                     return winSmallClip != null ? winSmallClip : _synthClips.GetValueOrDefault(type);
                 case SoundType.WinBig:
                     return winBigClip != null ? winBigClip : _synthClips.GetValueOrDefault(type);
+                case SoundType.WinMega:
+                    return winMegaClip != null ? winMegaClip : _synthClips.GetValueOrDefault(type);
                 case SoundType.FreeSpinsTrigger:
                     return freeSpinsClip != null ? freeSpinsClip : _synthClips.GetValueOrDefault(type);
                 case SoundType.CoinsCollect:
                     return coinsCollectClip != null ? coinsCollectClip : _synthClips.GetValueOrDefault(type);
+                case SoundType.Anticipation:
+                    return anticipationClip != null ? anticipationClip : _synthClips.GetValueOrDefault(type);
                 default:
                     return null;
             }
@@ -109,8 +115,10 @@ namespace Underpin.SlotGame.Audio
             _synthClips[SoundType.ReelStop] = CreateSlideClip("ReelStop", 280f, 180f, 0.08f);
             _synthClips[SoundType.WinSmall] = CreateArpeggioClip("WinSmall", new float[] { 523f, 659f, 784f, 1046f }, 0.08f);
             _synthClips[SoundType.WinBig] = CreateArpeggioClip("WinBig", new float[] { 523f, 659f, 784f, 1046f, 1318f, 1568f }, 0.12f);
+            _synthClips[SoundType.WinMega] = CreateArpeggioClip("WinMega", new float[] { 523f, 659f, 784f, 1046f, 1318f, 1568f, 2093f }, 0.14f);
             _synthClips[SoundType.FreeSpinsTrigger] = CreateArpeggioClip("FreeSpins", new float[] { 440f, 554f, 659f, 880f, 1108f }, 0.15f);
             _synthClips[SoundType.CoinsCollect] = CreateToneClip("Coins", 1200f, 0.05f, WaveType.Sine);
+            _synthClips[SoundType.Anticipation] = CreateSlideClip("Anticipation", 320f, 880f, 0.45f);
         }
 
         private enum WaveType { Sine, Square, Triangle, Noise }

@@ -99,6 +99,7 @@ namespace Underpin.SlotGame.Core
             {
                 reelController.Initialize(paytableConfig, _rng);
                 reelController.OnReelClickTick += HandleReelClickTick;
+                reelController.OnAnticipationStarted += HandleAnticipationStarted;
             }
 
             // Start Economy initial notification
@@ -111,6 +112,7 @@ namespace Underpin.SlotGame.Core
             if (reelController != null)
             {
                 reelController.OnReelClickTick -= HandleReelClickTick;
+                reelController.OnAnticipationStarted -= HandleAnticipationStarted;
             }
         }
 
@@ -119,6 +121,19 @@ namespace Underpin.SlotGame.Core
             if (audioManager != null)
             {
                 audioManager.PlaySound(SoundType.ReelTick, 0.25f);
+            }
+        }
+
+        private void HandleAnticipationStarted(int reelIdx)
+        {
+            if (audioManager != null)
+            {
+                audioManager.PlaySound(SoundType.Anticipation, 0.9f);
+            }
+
+            if (uiManager != null)
+            {
+                uiManager.SetStatusMessage("<color=#FFD700>★ BONUS CHANCE! SCATTER ANTICIPATION... ★</color>");
             }
         }
 
@@ -260,14 +275,20 @@ namespace Underpin.SlotGame.Core
                 if (reelController != null)
                 {
                     var winningCoords = result.GetAllWinningCoordinates();
-                    Color glow = result.WinningPaylines.Count > 0 ? result.WinningPaylines[0].MatchedSymbol.HighlightColor : Color.yellow;
+                    Color glow = result.WinningPaylines.Count > 0 
+                        ? result.WinningPaylines[0].MatchedSymbol.HighlightColor 
+                        : (result.IsFreeSpinsTriggered ? new Color(1f, 0.85f, 0.1f, 1f) : Color.yellow);
                     reelController.HighlightWinningSymbols(winningCoords, glow);
                 }
 
                 // Sound & Win celebration
                 if (audioManager != null)
                 {
-                    if (result.IsMegaWin || result.IsBigWin)
+                    if (result.IsMegaWin)
+                    {
+                        audioManager.PlaySound(SoundType.WinMega);
+                    }
+                    else if (result.IsBigWin)
                     {
                         audioManager.PlaySound(SoundType.WinBig);
                     }

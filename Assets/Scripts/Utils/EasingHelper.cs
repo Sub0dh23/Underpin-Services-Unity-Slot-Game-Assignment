@@ -71,5 +71,22 @@ namespace Underpin.SlotGame.Utils
                 return 7.5625f * t * t + 0.984375f;
             }
         }
+
+        /// <summary>
+        /// Symmetrical oscillation between 0.0 and 1.0 (0 -> 1 -> 0).
+        /// </summary>
+        public static float PingPong(float t)
+        {
+            return 1f - Mathf.Abs((t % 2f) - 1f);
+        }
+
+        /// <summary>
+        /// Smooth sinusoidal/quad-eased ping-pong factor between 0.0 and 1.0.
+        /// </summary>
+        public static float EaseInOutPingPong(float t)
+        {
+            float p = PingPong(t);
+            return EaseInOutQuad(p);
+        }
     }
 }

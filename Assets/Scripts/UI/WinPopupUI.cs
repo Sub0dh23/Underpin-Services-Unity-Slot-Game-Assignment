@@ -24,17 +24,35 @@ namespace Underpin.SlotGame.UI
         [SerializeField] private RectTransform bannerTransform;
 
         [Header("Animation Settings")]
-        [SerializeField] private float countUpDuration = 1.2f;
-        [SerializeField] private float autoDismissDelay = 2.5f;
+        [SerializeField] private float defaultCountUpDuration = 1.2f;
+        [SerializeField] private float defaultAutoDismissDelay = 2.5f;
 
         private Action _onDismissedCallback;
         private Coroutine _displayRoutine;
+        private Color _originalBannerColor = Color.white;
+        private Vector3 _originalTitleScale = Vector3.one;
+        private Vector3 _originalAmountScale = Vector3.one;
 
         private void Awake()
         {
             if (dismissButton != null)
             {
                 dismissButton.onClick.AddListener(Dismiss);
+            }
+
+            if (popupBannerImage != null)
+            {
+                _originalBannerColor = popupBannerImage.color;
+            }
+
+            if (titleText != null)
+            {
+                _originalTitleScale = titleText.transform.localScale;
+            }
+
+            if (winAmountText != null)
+            {
+                _originalAmountScale = winAmountText.transform.localScale;
             }
 
             HideImmediate();
@@ -46,23 +64,48 @@ namespace Underpin.SlotGame.UI
             gameObject.SetActive(true);
             if (popupContainer != null) popupContainer.SetActive(true);
 
-            if (titleText != null)
+            // Configure visual tier parameters
+            Color bannerColor;
+            string titleStr;
+            string subStr;
+            float countDuration;
+            float dismissDelay;
+            float overshootFactor;
+
+            if (isMegaWin)
             {
-                if (isMegaWin)
-                    titleText.text = "<color=#FFD700>MEGA WIN!</color>";
-                else if (isBigWin)
-                    titleText.text = "<color=#FFA500>BIG WIN!</color>";
-                else
-                    titleText.text = "<color=#00FFFF>WINNER!</color>";
+                titleStr = "<size=115%><color=#FFD700>★ MEGA WIN ★</color></size>";
+                subStr = "<color=#FFE680>JACKPOT TIER COMBINATION!</color>";
+                bannerColor = new Color(1.0f, 0.72f, 0.05f, 1.0f); // Radiant Gold
+                countDuration = 2.0f;
+                dismissDelay = 3.0f;
+                overshootFactor = 3.2f;
+            }
+            else if (isBigWin)
+            {
+                titleStr = "<size=108%><color=#FFA500>★ BIG WIN! ★</color></size>";
+                subStr = "<color=#FFD280>SPECTACULAR WIN!</color>";
+                bannerColor = new Color(1.0f, 0.55f, 0.0f, 1.0f); // Amber Orange
+                countDuration = 1.4f;
+                dismissDelay = 2.2f;
+                overshootFactor = 2.2f;
+            }
+            else
+            {
+                titleStr = "<color=#00FFFF>WINNER!</color>";
+                subStr = "Tap anywhere to collect";
+                bannerColor = new Color(0.0f, 0.75f, 1.0f, 1.0f); // Cyan Blue
+                countDuration = defaultCountUpDuration;
+                dismissDelay = defaultAutoDismissDelay;
+                overshootFactor = 1.4f;
             }
 
-            if (subDetailText != null)
-            {
-                subDetailText.text = "Tap anywhere to collect";
-            }
+            if (titleText != null) titleText.text = titleStr;
+            if (subDetailText != null) subDetailText.text = subStr;
+            if (popupBannerImage != null) popupBannerImage.color = bannerColor;
 
             if (_displayRoutine != null) StopCoroutine(_displayRoutine);
-            _displayRoutine = StartCoroutine(AnimateWinDisplay(winAmount));
+            _displayRoutine = StartCoroutine(AnimateWinDisplay(winAmount, isMegaWin, isBigWin, countDuration, dismissDelay, overshootFactor, bannerColor));
         }
 
         public void ShowFreeSpinsTrigger(int freeSpinsCount, Action onComplete)
@@ -73,7 +116,7 @@ namespace Underpin.SlotGame.UI
 
             if (titleText != null)
             {
-                titleText.text = "<color=#FF00FF>FREE SPINS BONUS!</color>";
+                titleText.text = "<size=115%><color=#FF00FF>★ FREE SPINS BONUS! ★</color></size>";
             }
 
             if (winAmountText != null)
@@ -83,7 +126,12 @@ namespace Underpin.SlotGame.UI
 
             if (subDetailText != null)
             {
-                subDetailText.text = "All Free Spin wins are DOUBLED (2x)!";
+                subDetailText.text = "<color=#FFAAFF>All Free Spin wins are DOUBLED (2x)!</color>";
+            }
+
+            if (popupBannerImage != null)
+            {
+                popupBannerImage.color = new Color(0.85f, 0.15f, 1.0f, 1.0f); // Magenta
             }
 
             if (AudioManager.Instance != null)
@@ -92,7 +140,7 @@ namespace Underpin.SlotGame.UI
             }
 
             if (_displayRoutine != null) StopCoroutine(_displayRoutine);
-            _displayRoutine = StartCoroutine(AnimateSimpleBanner());
+            _displayRoutine = StartCoroutine(AnimateSimpleBanner(2.8f, 2.5f));
         }
 
         public void Dismiss()
@@ -103,9 +151,33 @@ namespace Underpin.SlotGame.UI
                 _displayRoutine = null;
             }
 
+            ResetVisualTransforms();
             HideImmediate();
             _onDismissedCallback?.Invoke();
             _onDismissedCallback = null;
+        }
+
+        private void ResetVisualTransforms()
+        {
+            if (bannerTransform != null)
+            {
+                bannerTransform.localScale = Vector3.one;
+            }
+
+            if (titleText != null)
+            {
+                titleText.transform.localScale = _originalTitleScale;
+            }
+
+            if (winAmountText != null)
+            {
+                winAmountText.transform.localScale = _originalAmountScale;
+            }
+
+            if (popupBannerImage != null)
+            {
+                popupBannerImage.color = _originalBannerColor;
+            }
         }
 
         private void HideImmediate()
@@ -120,60 +192,108 @@ namespace Underpin.SlotGame.UI
             }
         }
 
-        private IEnumerator AnimateWinDisplay(int targetAmount)
+        private IEnumerator AnimateWinDisplay(int targetAmount, bool isMegaWin, bool isBigWin, float countDuration, float dismissDelay, float overshoot, Color baseColor)
         {
-            // Banner bounce-in
+            // 1. Banner bounce-in using EasingHelper.EaseOutBack with dynamic overshoot
             if (bannerTransform != null)
             {
                 bannerTransform.localScale = Vector3.zero;
             }
 
             float enterTimer = 0f;
-            float enterDuration = 0.35f;
+            float enterDuration = 0.38f;
             while (enterTimer < enterDuration)
             {
                 enterTimer += Time.deltaTime;
                 float progress = Mathf.Clamp01(enterTimer / enterDuration);
+                float easeScale = EasingHelper.EaseOutBack(progress, overshoot);
+
                 if (bannerTransform != null)
                 {
-                    bannerTransform.localScale = Vector3.one * EasingHelper.EaseOutBack(progress);
+                    bannerTransform.localScale = Vector3.one * easeScale;
                 }
                 yield return null;
             }
 
-            // Number tally count-up
+            if (bannerTransform != null)
+            {
+                bannerTransform.localScale = Vector3.one;
+            }
+
+            // 2. Number tally count-up with dynamic text scale pulse and sound ticks
             float countTimer = 0f;
             int lastSoundCount = 0;
-            while (countTimer < countUpDuration)
+            int tickStep = Mathf.Max(1, targetAmount / 12);
+
+            while (countTimer < countDuration)
             {
                 countTimer += Time.deltaTime;
-                float progress = Mathf.Clamp01(countTimer / countUpDuration);
-                int currentVal = Mathf.RoundToInt(Mathf.Lerp(0, targetAmount, progress));
+                float progress = Mathf.Clamp01(countTimer / countDuration);
+                float easeProgress = EasingHelper.EaseOutQuad(progress);
+                int currentVal = Mathf.RoundToInt(Mathf.Lerp(0, targetAmount, easeProgress));
 
                 if (winAmountText != null)
                 {
                     winAmountText.text = $"+{currentVal:N0}";
+
+                    // Scale punch on count text
+                    float textBounce = 1.0f + (0.15f * Mathf.Sin(progress * Mathf.PI * 6f));
+                    winAmountText.transform.localScale = _originalAmountScale * textBounce;
                 }
 
-                if (currentVal - lastSoundCount > targetAmount / 10 && AudioManager.Instance != null)
+                // Title pulse for Mega/Big wins
+                if (titleText != null && (isMegaWin || isBigWin))
                 {
-                    AudioManager.Instance.PlaySound(SoundType.CoinsCollect, 0.4f);
+                    float titleEase = EasingHelper.EaseInOutPingPong(countTimer * 4f);
+                    float titleScale = Mathf.Lerp(1.0f, isMegaWin ? 1.2f : 1.1f, titleEase);
+                    titleText.transform.localScale = _originalTitleScale * titleScale;
+                }
+
+                // Banner shimmer / color pulse for Mega Win
+                if (popupBannerImage != null && isMegaWin)
+                {
+                    float shimmer = EasingHelper.EaseInOutPingPong(countTimer * 5f);
+                    popupBannerImage.color = Color.Lerp(baseColor, new Color(1f, 0.95f, 0.6f, 1f), shimmer * 0.5f);
+                }
+
+                if (currentVal - lastSoundCount >= tickStep && AudioManager.Instance != null)
+                {
+                    AudioManager.Instance.PlaySound(SoundType.CoinsCollect, 0.45f);
                     lastSoundCount = currentVal;
                 }
 
                 yield return null;
             }
 
+            // Final value snap & impact punch
             if (winAmountText != null)
             {
                 winAmountText.text = $"+{targetAmount:N0}";
+                winAmountText.transform.localScale = _originalAmountScale * (isMegaWin ? 1.25f : 1.12f);
             }
 
-            yield return new WaitForSeconds(autoDismissDelay);
+            if (titleText != null)
+            {
+                titleText.transform.localScale = _originalTitleScale * (isMegaWin ? 1.15f : 1.05f);
+            }
+
+            // 3. Celebration hold phase with subtle idle pulse
+            float holdTimer = 0f;
+            while (holdTimer < dismissDelay)
+            {
+                holdTimer += Time.deltaTime;
+                if (isMegaWin && bannerTransform != null)
+                {
+                    float idlePulse = 1.0f + (0.04f * Mathf.Sin(holdTimer * 6f));
+                    bannerTransform.localScale = Vector3.one * idlePulse;
+                }
+                yield return null;
+            }
+
             Dismiss();
         }
 
-        private IEnumerator AnimateSimpleBanner()
+        private IEnumerator AnimateSimpleBanner(float dismissDelay, float overshoot)
         {
             if (bannerTransform != null)
             {
@@ -181,19 +301,24 @@ namespace Underpin.SlotGame.UI
             }
 
             float enterTimer = 0f;
-            float enterDuration = 0.35f;
+            float enterDuration = 0.38f;
             while (enterTimer < enterDuration)
             {
                 enterTimer += Time.deltaTime;
                 float progress = Mathf.Clamp01(enterTimer / enterDuration);
                 if (bannerTransform != null)
                 {
-                    bannerTransform.localScale = Vector3.one * EasingHelper.EaseOutBack(progress);
+                    bannerTransform.localScale = Vector3.one * EasingHelper.EaseOutBack(progress, overshoot);
                 }
                 yield return null;
             }
 
-            yield return new WaitForSeconds(autoDismissDelay);
+            if (bannerTransform != null)
+            {
+                bannerTransform.localScale = Vector3.one;
+            }
+
+            yield return new WaitForSeconds(dismissDelay);
             Dismiss();
         }
     }

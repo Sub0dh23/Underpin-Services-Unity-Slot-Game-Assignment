@@ -27,10 +27,14 @@ namespace Underpin.SlotGame.Reel
         [Tooltip("Delay in seconds between stopping consecutive reels.")]
         [SerializeField] private float reelStopStagger = 0.32f;
 
+        [Tooltip("Extra spin tension duration in seconds when 2+ scatters land before the final reel stops.")]
+        [SerializeField] private float anticipationSpinDuration = 1.25f;
+
         // Events
         public event Action OnAllReelsSpinStarted;
         public event Action OnAllReelsSpinCompleted;
         public event Action<int> OnReelClickTick;
+        public event Action<int> OnAnticipationStarted;
 
         private bool _isSpinning;
         private int _reelsStoppedCount;
@@ -104,15 +108,34 @@ namespace Underpin.SlotGame.Reel
             // 2. Minimum spin duration
             yield return new WaitForSeconds(minSpinDuration);
 
-            // 3. Staggered Stop
+            // 3. Staggered Stop with Anticipation Check
             int rowCount = targetGrid.GetLength(1);
+            int landedScatters = 0;
+
             for (int i = 0; i < reels.Length; i++)
             {
+                // Anticipation Near-Miss Check: If 2+ scatters already landed and remaining reels are spinning
+                if (i > 0 && landedScatters >= 2)
+                {
+                    HighlightLandedScatters(targetGrid, i);
+                    OnAnticipationStarted?.Invoke(i);
+
+                    // Add tension slowdown delay before stopping this reel
+                    if (anticipationSpinDuration > 0f)
+                    {
+                        yield return new WaitForSeconds(anticipationSpinDuration);
+                    }
+                }
+
                 // Extract target symbols for this reel column
                 SymbolData[] reelTargets = new SymbolData[rowCount];
                 for (int row = 0; row < rowCount; row++)
                 {
                     reelTargets[row] = targetGrid[i, row];
+                    if (reelTargets[row] != null && reelTargets[row].Type == SymbolType.Scatter)
+                    {
+                        landedScatters++;
+                    }
                 }
 
                 int reelIndex = i;
@@ -134,6 +157,25 @@ namespace Underpin.SlotGame.Reel
             _isSpinning = false;
             OnAllReelsSpinCompleted?.Invoke();
             onComplete?.Invoke();
+        }
+
+        private void HighlightLandedScatters(SymbolData[,] grid, int upToReelExclusive)
+        {
+            int rowCount = grid.GetLength(1);
+            for (int r = 0; r < upToReelExclusive && r < reels.Length; r++)
+            {
+                for (int row = 0; row < rowCount; row++)
+                {
+                    if (grid[r, row] != null && grid[r, row].Type == SymbolType.Scatter)
+                    {
+                        var view = reels[r].GetVisibleSymbolView(row);
+                        if (view != null)
+                        {
+                            view.PlayAnticipationPulse(new Color(1f, 0.85f, 0.1f, 1f));
+                        }
+                    }
+                }
+            }
         }
 
         private void HandleIndividualReelStopped(int reelIdx)

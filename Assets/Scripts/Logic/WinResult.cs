@@ -39,6 +39,7 @@ namespace Underpin.SlotGame.Logic
         public bool IsFreeSpinsTriggered { get; set; }
         public int FreeSpinsAwarded { get; set; }
         public int ScatterCount { get; set; }
+        public List<SlotCoordinate> ScatterPositions { get; set; } = new List<SlotCoordinate>();
         public bool IsBigWin { get; set; }
         public bool IsMegaWin { get; set; }
 
@@ -61,6 +62,15 @@ namespace Underpin.SlotGame.Logic
                     }
                 }
             }
+
+            if (IsFreeSpinsTriggered && ScatterPositions != null)
+            {
+                for (int i = 0; i < ScatterPositions.Count; i++)
+                {
+                    coords.Add(ScatterPositions[i]);
+                }
+            }
+
             return coords;
         }
     }

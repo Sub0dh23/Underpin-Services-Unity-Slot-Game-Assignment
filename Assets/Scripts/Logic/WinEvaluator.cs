@@ -82,6 +82,7 @@ namespace Underpin.SlotGame.Logic
 
             // 2. Evaluate Scatter symbols anywhere on grid
             int scatterCount = 0;
+            var scatterCoords = new List<SlotCoordinate>();
             for (int r = 0; r < reelCount; r++)
             {
                 for (int row = 0; row < rowCount; row++)
@@ -90,11 +91,13 @@ namespace Underpin.SlotGame.Logic
                     if (sym != null && sym.Type == SymbolType.Scatter)
                     {
                         scatterCount++;
+                        scatterCoords.Add(new SlotCoordinate(r, row));
                     }
                 }
             }
 
             result.ScatterCount = scatterCount;
+            result.ScatterPositions = scatterCoords;
             if (scatterCount >= config.ScatterTriggerCount)
             {
                 result.IsFreeSpinsTriggered = true;

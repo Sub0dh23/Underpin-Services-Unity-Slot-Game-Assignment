@@ -24,15 +24,23 @@ namespace Underpin.SlotGame.Reel
         private SymbolData _currentSymbol;
         private Coroutine _winAnimationRoutine;
         private Vector3 _originalScale;
+        private Color _originalImageColor = Color.white;
+        private Color _baseGlowColor = Color.yellow;
         private bool _isHighlighted;
 
         public SymbolData CurrentSymbol => _currentSymbol;
         public RectTransform Rect => rectTransform != null ? rectTransform : (rectTransform = GetComponent<RectTransform>());
+        public bool IsHighlighted => _isHighlighted;
 
         private void Awake()
         {
             if (rectTransform == null) rectTransform = GetComponent<RectTransform>();
             _originalScale = rectTransform != null ? rectTransform.localScale : Vector3.one;
+
+            if (symbolImage != null)
+            {
+                _originalImageColor = symbolImage.color;
+            }
 
             if (glowOutline != null)
             {
@@ -62,10 +70,8 @@ namespace Underpin.SlotGame.Reel
             ResetHighlight();
         }
 
-        private Color _baseGlowColor = Color.yellow;
-
         /// <summary>
-        /// Triggers win highlight effect (glow + pulse animation).
+        /// Triggers win highlight effect (glow outline + EasingHelper scale-pulse & color-flash tween).
         /// </summary>
         public void PlayWinHighlight(Color customGlowColor)
         {
@@ -80,7 +86,26 @@ namespace Underpin.SlotGame.Reel
             }
 
             if (_winAnimationRoutine != null) StopCoroutine(_winAnimationRoutine);
-            _winAnimationRoutine = StartCoroutine(AnimateWinPulse());
+            _winAnimationRoutine = StartCoroutine(AnimateWinPulseRoutine(pulseScale, pulseSpeed));
+        }
+
+        /// <summary>
+        /// Triggers rapid anticipation pulse for landed scatters when bonus is within reach.
+        /// </summary>
+        public void PlayAnticipationPulse(Color? customColor = null)
+        {
+            if (_isHighlighted) return;
+            _isHighlighted = true;
+            _baseGlowColor = customColor ?? new Color(1f, 0.85f, 0.1f, 1f); // Vibrant gold
+
+            if (glowOutline != null)
+            {
+                glowOutline.color = _baseGlowColor;
+                glowOutline.gameObject.SetActive(true);
+            }
+
+            if (_winAnimationRoutine != null) StopCoroutine(_winAnimationRoutine);
+            _winAnimationRoutine = StartCoroutine(AnimateWinPulseRoutine(1.22f, 6.0f));
         }
 
         /// <summary>
@@ -100,31 +125,44 @@ namespace Underpin.SlotGame.Reel
                 rectTransform.localScale = _originalScale;
             }
 
+            if (symbolImage != null)
+            {
+                symbolImage.color = _originalImageColor;
+            }
+
             if (glowOutline != null)
             {
                 glowOutline.gameObject.SetActive(false);
             }
         }
 
-        private IEnumerator AnimateWinPulse()
+        private IEnumerator AnimateWinPulseRoutine(float maxScale, float speed)
         {
-            float timer = 0f;
+            float elapsed = 0f;
+
             while (_isHighlighted)
             {
-                timer += Time.deltaTime * pulseSpeed;
-                float sinFactor = (Mathf.Sin(timer) + 1f) * 0.5f; // 0 to 1
-                float scale = Mathf.Lerp(1.0f, pulseScale, sinFactor);
+                elapsed += Time.deltaTime * speed;
+                float easeFactor = EasingHelper.EaseInOutPingPong(elapsed);
+                float currentScale = Mathf.Lerp(1.0f, maxScale, easeFactor);
 
                 if (rectTransform != null)
                 {
-                    rectTransform.localScale = _originalScale * scale;
+                    rectTransform.localScale = _originalScale * currentScale;
                 }
 
                 if (glowOutline != null)
                 {
-                    Color c = _baseGlowColor;
-                    c.a = Mathf.Lerp(0.45f, 1.0f, sinFactor);
-                    glowOutline.color = c;
+                    Color gc = _baseGlowColor;
+                    gc.a = Mathf.Lerp(0.35f, 1.0f, easeFactor);
+                    glowOutline.color = gc;
+                }
+
+                if (symbolImage != null)
+                {
+                    // Subtle color-flash brightness pulse
+                    Color flashColor = Color.Lerp(_originalImageColor, Color.Lerp(_originalImageColor, _baseGlowColor, 0.45f), easeFactor);
+                    symbolImage.color = flashColor;
                 }
 
                 yield return null;
@@ -133,6 +171,11 @@ namespace Underpin.SlotGame.Reel
             if (rectTransform != null)
             {
                 rectTransform.localScale = _originalScale;
+            }
+
+            if (symbolImage != null)
+            {
+                symbolImage.color = _originalImageColor;
             }
         }
     }
