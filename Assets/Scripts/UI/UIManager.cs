@@ -275,12 +275,12 @@ namespace Underpin.SlotGame.UI
             target.localScale = Vector3.one;
         }
 
-        public void ShowGamble(int winAmount, int maxRounds, Action<int> onCollect, Action onBust)
+        public void ShowGamble(int winAmount, int maxRounds, Action<int> onCollect, Action onBust, Underpin.SlotGame.Logic.IRandomNumberGenerator rng = null)
         {
             EnsureGambleUI();
             if (gamblePopup != null)
             {
-                gamblePopup.OpenGamble(winAmount, maxRounds, onCollect, onBust);
+                gamblePopup.OpenGamble(winAmount, maxRounds, onCollect, onBust, rng);
             }
         }
 

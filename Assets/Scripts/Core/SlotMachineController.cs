@@ -477,7 +477,8 @@ namespace Underpin.SlotGame.Core
                             uiManager.SetGambleButtonVisible(false);
                         }
                         SetState(_economy.CanAffordSpin() ? GameState.Idle : GameState.OutOfFunds);
-                    });
+                    },
+                    rng: _rng);
             }
         }
 

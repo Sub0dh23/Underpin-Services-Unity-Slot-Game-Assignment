@@ -102,10 +102,10 @@ namespace Underpin.SlotGame.Logic
             CardSuit[] suits = (CardSuit[])Enum.GetValues(typeof(CardSuit));
             CardRank[] ranks = (CardRank[])Enum.GetValues(typeof(CardRank));
 
-            CardSuit suit = suits[UnityEngine.Random.Range(0, suits.Length)];
-            CardRank rank = ranks[UnityEngine.Random.Range(0, ranks.Length)];
+            int suitIndex = rng != null ? rng.NextRange(0, suits.Length) : UnityEngine.Random.Range(0, suits.Length);
+            int rankIndex = rng != null ? rng.NextRange(0, ranks.Length) : UnityEngine.Random.Range(0, ranks.Length);
 
-            return new GambleCard(suit, rank);
+            return new GambleCard(suits[suitIndex], ranks[rankIndex]);
         }
     }
 }

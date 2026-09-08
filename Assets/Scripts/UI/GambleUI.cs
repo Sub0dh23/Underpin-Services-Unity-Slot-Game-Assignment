@@ -56,6 +56,7 @@ namespace Underpin.SlotGame.UI
         private bool _isBusy = false;
         private Action<int> _onCollectCallback;
         private Action _onBustCallback;
+        private IRandomNumberGenerator _rng;
         private readonly List<GambleCard> _cardHistory = new List<GambleCard>();
 
         public int CurrentPot => _currentPot;
@@ -114,7 +115,7 @@ namespace Underpin.SlotGame.UI
             }
         }
 
-        public void OpenGamble(int initialWinAmount, int maxGambleRounds, Action<int> onCollect, Action onBust)
+        public void OpenGamble(int initialWinAmount, int maxGambleRounds, Action<int> onCollect, Action onBust, IRandomNumberGenerator rng = null)
         {
             EnsureUIHierarchy();
             BindButtonEvents();
@@ -125,6 +126,7 @@ namespace Underpin.SlotGame.UI
             _isBusy = false;
             _onCollectCallback = onCollect;
             _onBustCallback = onBust;
+            _rng = rng;
 
             gameObject.SetActive(true);
             if (gamblePanel != null) gamblePanel.SetActive(true);
@@ -150,7 +152,7 @@ namespace Underpin.SlotGame.UI
             _isBusy = true;
             SetButtonsInteractable(false);
 
-            GambleCard drawnCard = GambleCard.DrawRandom();
+            GambleCard drawnCard = GambleCard.DrawRandom(_rng);
             bool isWin = (drawnCard.Color == chosenColor);
             int multiplier = 2;
 
@@ -163,7 +165,7 @@ namespace Underpin.SlotGame.UI
             _isBusy = true;
             SetButtonsInteractable(false);
 
-            GambleCard drawnCard = GambleCard.DrawRandom();
+            GambleCard drawnCard = GambleCard.DrawRandom(_rng);
             bool isWin = (drawnCard.Suit == chosenSuit);
             int multiplier = 4;
 
