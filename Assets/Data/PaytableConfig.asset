@@ -76,3 +76,6 @@ MonoBehaviour:
   freeSpinsWinMultiplier: 2
   bigWinMultiplierThreshold: 10
   megaWinMultiplierThreshold: 25
+  isGambleEnabled: 1
+  maxGambleRounds: 5
+

@@ -105,6 +105,23 @@ namespace Underpin.SlotGame.UI
                     }
                 }
             }
+
+            // Populate Gamble / Double-or-Nothing Bonus Info Card
+            if (config.IsGambleEnabled)
+            {
+                GameObject gambleCard = Instantiate(symbolEntryTemplate, symbolsContentParent);
+                gambleCard.SetActive(true);
+
+                var texts = gambleCard.GetComponentsInChildren<TextMeshProUGUI>(true);
+                TextMeshProUGUI nameTxt = texts.Length > 0 ? texts[0] : null;
+                TextMeshProUGUI payoutTxt = texts.Length > 1 ? texts[1] : null;
+
+                if (nameTxt != null) nameTxt.text = "<color=#FFD700>GAMBLE FEATURE</color>";
+                if (payoutTxt != null)
+                {
+                    payoutTxt.text = $"<color=#00FFFF>Double or Nothing</color>\nRed/Black: 2x | Suit: 4x\nUp to {config.MaxGambleRounds} Rounds";
+                }
+            }
         }
 
         public void Show()

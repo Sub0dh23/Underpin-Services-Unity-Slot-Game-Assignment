@@ -20,6 +20,9 @@ namespace Underpin.SlotGame.Core
         /// <summary> Executing automated Free Spins bonus sequence. </summary>
         FreeSpins,
 
+        /// <summary> Double-or-Nothing card gamble bonus minigame. </summary>
+        Gamble,
+
         /// <summary> Player balance depleted below minimum bet. </summary>
         OutOfFunds
     }

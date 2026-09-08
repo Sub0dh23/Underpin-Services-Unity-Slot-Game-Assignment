@@ -147,12 +147,19 @@ When evaluating the build, verify these core mechanics & "juice" details:
   - **Big Win (≥ 20x Bet)**: Big win fanfare with animated banner popup.
   - **Mega Win (≥ 50x Bet)**: Multi-layer celebration modal with golden particle fountain.
 
-### 🎁 Bonus Mechanics (Wilds & Free Spins)
+### 🎁 Bonus Mechanics (Wilds, Free Spins & Gamble Feature)
 - **Wild Substitution**: The Wild Star symbol dynamically matches with any standard fruit or high-tier symbol to complete winning paylines.
 - **Free Spins Bonus Round**:
   - Hitting 3 Scatter symbols triggers **10 Free Spins**.
   - All wins during Free Spins are multiplied by **2.0x**.
   - HUD transitions to an active Free Spins theme displaying remaining free turns and accumulated bonus winnings.
+- **🃏 Double-or-Nothing Gamble Minigame**:
+  - After any standard winning spin, players are presented with an interactive **Gamble (2X)** bonus opportunity.
+  - **Red vs. Black (2x Double)**: 50/50 chance to double the gamble pot.
+  - **Card Suit Guess (4x Quadruple)**: 1-in-4 chance (♥, ♦, ♣, ♠) to quadruple the gamble pot!
+  - **3D Card Flip Animation**: Smooth horizontal perspective flip with audio cues via `EasingHelper`.
+  - **Card History Strip**: Tracks previous drawn cards in real-time.
+  - **Collect Anytime**: Bank the doubled pot at any round or push luck up to 5 consecutive gamble rounds.
 
 ### 🔊 Dynamic Audio & Sound Synthesis
 - Event-driven [`AudioManager`](file:///G:/Unity%20Games/Underpin%20Services%20Task/Assets/Scripts/Audio/AudioManager.cs) supports custom audio clips with automated procedural waveform synthesis:
@@ -161,6 +168,8 @@ When evaluating the build, verify these core mechanics & "juice" details:
   - **Win Jingle**: Harmonic major chord chime cascade.
   - **Big Win / Jackpot**: Grand arpeggiated fanfare.
   - **Lever Pull**: Metallic latch release sound.
+  - **Gamble Card Flip & Win**: High-frequency card slide and victory arpeggios.
+  - **Gamble Bust**: Descending frequency audio feedback.
 
 ---
 
@@ -176,6 +185,7 @@ graph TD
     A --> E[SlotReelController<br/>3-Reel Strip Physics]
     A --> F[UIManager<br/>HUD, Modals & Paytable]
     A --> G[AudioManager<br/>SFX & Procedural Synth]
+    A --> L[GambleUI<br/>Double-or-Nothing Minigame]
     H[SlotHandleController<br/>Interactive Lever] --> A
     E --> I[ReelStrip<br/>Symbol Pooling & Easing]
     I --> J[SymbolView<br/>Sprite & Glow Shader View]
@@ -186,15 +196,15 @@ graph TD
 ```
 
 1. **Strict Separation of Concerns (MVC Pattern)**:
-   - **Model (`Data` & `Logic`)**: [`PaytableConfig.cs`](file:///G:/Unity%20Games/Underpin%20Services%20Task/Assets/Scripts/Data/PaytableConfig.cs), [`SymbolData.cs`](file:///G:/Unity%20Games/Underpin%20Services%20Task/Assets/Scripts/Data/SymbolData.cs), [`WinEvaluator.cs`](file:///G:/Unity%20Games/Underpin%20Services%20Task/Assets/Scripts/Logic/WinEvaluator.cs), [`EconomyManager.cs`](file:///G:/Unity%20Games/Underpin%20Services%20Task/Assets/Scripts/Core/EconomyManager.cs). Completely independent of Unity rendering, allowing deterministic unit testing.
-   - **View (`UI`, `Reel`, `Audio`)**: [`SymbolView.cs`](file:///G:/Unity%20Games/Underpin%20Services%20Task/Assets/Scripts/Reel/SymbolView.cs), [`UIManager.cs`](file:///G:/Unity%20Games/Underpin%20Services%20Task/Assets/Scripts/UI/UIManager.cs), [`SlotHandleController.cs`](file:///G:/Unity%20Games/Underpin%20Services%20Task/Assets/Scripts/UI/SlotHandleController.cs), [`AudioManager.cs`](file:///G:/Unity%20Games/Underpin%20Services%20Task/Assets/Scripts/Audio/AudioManager.cs). Responsible solely for visual presentation, easing curves, and audio cues.
+   - **Model (`Data` & `Logic`)**: [`PaytableConfig.cs`](file:///G:/Unity%20Games/Underpin%20Services%20Task/Assets/Scripts/Data/PaytableConfig.cs), [`SymbolData.cs`](file:///G:/Unity%20Games/Underpin%20Services%20Task/Assets/Scripts/Data/SymbolData.cs), [`GambleData.cs`](file:///G:/Unity%20Games/Underpin%20Services%20Task/Assets/Scripts/Logic/GambleData.cs), [`WinEvaluator.cs`](file:///G:/Unity%20Games/Underpin%20Services%20Task/Assets/Scripts/Logic/WinEvaluator.cs), [`EconomyManager.cs`](file:///G:/Unity%20Games/Underpin%20Services%20Task/Assets/Scripts/Core/EconomyManager.cs). Completely independent of Unity rendering, allowing deterministic unit testing.
+   - **View (`UI`, `Reel`, `Audio`)**: [`SymbolView.cs`](file:///G:/Unity%20Games/Underpin%20Services%20Task/Assets/Scripts/Reel/SymbolView.cs), [`UIManager.cs`](file:///G:/Unity%20Games/Underpin%20Services%20Task/Assets/Scripts/UI/UIManager.cs), [`GambleUI.cs`](file:///G:/Unity%20Games/Underpin%20Services%20Task/Assets/Scripts/UI/GambleUI.cs), [`SlotHandleController.cs`](file:///G:/Unity%20Games/Underpin%20Services%20Task/Assets/Scripts/UI/SlotHandleController.cs), [`AudioManager.cs`](file:///G:/Unity%20Games/Underpin%20Services%20Task/Assets/Scripts/Audio/AudioManager.cs). Responsible solely for visual presentation, easing curves, and audio cues.
    - **Controller (`Core`)**: [`SlotMachineController.cs`](file:///G:/Unity%20Games/Underpin%20Services%20Task/Assets/Scripts/Core/SlotMachineController.cs). Coordinates RNG outcome generation, dispatches target grids to the reel views, triggers win evaluation, and updates economy credits.
 
 2. **Decoupled Event Architecture**:
-   - Systems communicate via C# `Action` events (`OnBalanceChanged`, `OnSpinInitiated`, `OnSpinResultsReady`, `OnStateChanged`). No tight coupling or hard singletons required between the UI and physics layers.
+   - Systems communicate via C# `Action` events (`OnBalanceChanged`, `OnSpinInitiated`, `OnSpinResultsReady`, `OnStateChanged`, `OnGambleRequested`). No tight coupling or hard singletons required between the UI and physics layers.
 
 3. **Data-Driven Configuration via ScriptableObjects**:
-   - Symbol sprites, weights (hit probabilities), payline geometries, bet steps, and multiplier values are defined in [`PaytableConfig.asset`](file:///G:/Unity%20Games/Underpin%20Services%20Task/Assets/Data/PaytableConfig.asset).
+   - Symbol sprites, weights (hit probabilities), payline geometries, bet steps, gamble settings, and multiplier values are defined in [`PaytableConfig.asset`](file:///G:/Unity%20Games/Underpin%20Services%20Task/Assets/Data/PaytableConfig.asset).
    - Game designers can tune game RTP and balance in seconds without recompiling code.
 
 4. **Zero-GC & WebGL Optimization**:
@@ -213,7 +223,9 @@ stateDiagram-v2
     Evaluating --> Idle : HasAnyWin == False & Balance > 0
     Evaluating --> OutOfFunds : HasAnyWin == False & Balance < MinBet
     WinCelebration --> FreeSpins : Scatter Triggered (3+ Scatters)
-    WinCelebration --> Idle : Standard Win Finished
+    WinCelebration --> Gamble : Player Clicks Gamble (2X)
+    WinCelebration --> Idle : Standard Win Banked
+    Gamble --> Idle : Collect Win or Bust (Loss)
     FreeSpins --> Spinning : Auto Next Free Spin
     FreeSpins --> Idle : Free Spins Remaining == 0
     OutOfFunds --> Idle : Bet Lowered or Balance Added
@@ -243,9 +255,9 @@ Underpin-Services-Unity-Slot-Game/
 │   │   ├── Audio/                # AudioManager, SoundType, Dynamic Synth
 │   │   ├── Core/                 # SlotMachineController, EconomyManager, GameState
 │   │   ├── Data/                 # SymbolData, PaytableConfig, PaylineData, SymbolType
-│   │   ├── Logic/                # RNGManager, WinEvaluator, WinResult
+│   │   ├── Logic/                # RNGManager, WinEvaluator, WinResult, GambleData
 │   │   ├── Reel/                 # SlotReelController, ReelStrip, SymbolView
-│   │   ├── UI/                   # UIManager, SlotHandleController, PaytableUI, WinPopupUI
+│   │   ├── UI/                   # UIManager, GambleUI, SlotHandleController, PaytableUI, WinPopupUI
 │   │   └── Utils/                # EasingHelper (cubic, back, bounce easing formulas)
 │   ├── Settings/                 # Universal Render Pipeline (URP 2D) configuration
 │   └── Sprites/                  # High-res slot machine frames, UI buttons, symbols
@@ -270,6 +282,7 @@ Underpin-Services-Unity-Slot-Game/
 | **Interactive Lever Handle** | ✅ Complete | [`SlotHandleController.cs`](file:///G:/Unity%20Games/Underpin%20Services%20Task/Assets/Scripts/UI/SlotHandleController.cs) |
 | **Wild Symbol Substitution** | ✅ Complete | [`WinEvaluator.cs`](file:///G:/Unity%20Games/Underpin%20Services%20Task/Assets/Scripts/Logic/WinEvaluator.cs) |
 | **Scatter & Free Spins Bonus** | ✅ Complete | [`SlotMachineController.cs`](file:///G:/Unity%20Games/Underpin%20Services%20Task/Assets/Scripts/Core/SlotMachineController.cs) |
+| **🃏 Double-or-Nothing Gamble Feature** | ✅ Complete | [`GambleUI.cs`](file:///G:/Unity%20Games/Underpin%20Services%20Task/Assets/Scripts/UI/GambleUI.cs) & [`GambleData.cs`](file:///G:/Unity%20Games/Underpin%20Services%20Task/Assets/Scripts/Logic/GambleData.cs) |
 | **Big Win Celebrations** | ✅ Complete | [`WinPopupUI.cs`](file:///G:/Unity%20Games/Underpin%20Services%20Task/Assets/Scripts/UI/WinPopupUI.cs) |
 | **Paytable Information Modal** | ✅ Complete | [`PaytableUI.cs`](file:///G:/Unity%20Games/Underpin%20Services%20Task/Assets/Scripts/UI/PaytableUI.cs) |
 | **Dynamic Audio Synthesis** | ✅ Complete | [`AudioManager.cs`](file:///G:/Unity%20Games/Underpin%20Services%20Task/Assets/Scripts/Audio/AudioManager.cs) |
@@ -278,3 +291,4 @@ Underpin-Services-Unity-Slot-Game/
 ---
 
 *Developed by Subodh Unawane for the Underpin Services Unity Developer Technical Assessment.*
+

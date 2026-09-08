@@ -15,6 +15,9 @@ namespace Underpin.SlotGame.Audio
         WinMega,
         FreeSpinsTrigger,
         CoinsCollect,
-        Anticipation
+        Anticipation,
+        GambleCardFlip,
+        GambleWin,
+        GambleLose
     }
 }

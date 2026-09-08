@@ -27,6 +27,9 @@ namespace Underpin.SlotGame.Audio
         [SerializeField] private AudioClip freeSpinsClip;
         [SerializeField] private AudioClip coinsCollectClip;
         [SerializeField] private AudioClip anticipationClip;
+        [SerializeField] private AudioClip gambleCardFlipClip;
+        [SerializeField] private AudioClip gambleWinClip;
+        [SerializeField] private AudioClip gambleLoseClip;
 
         private readonly Dictionary<SoundType, AudioClip> _synthClips = new Dictionary<SoundType, AudioClip>();
         private bool _isMuted = false;
@@ -101,6 +104,12 @@ namespace Underpin.SlotGame.Audio
                     return coinsCollectClip != null ? coinsCollectClip : _synthClips.GetValueOrDefault(type);
                 case SoundType.Anticipation:
                     return anticipationClip != null ? anticipationClip : _synthClips.GetValueOrDefault(type);
+                case SoundType.GambleCardFlip:
+                    return gambleCardFlipClip != null ? gambleCardFlipClip : _synthClips.GetValueOrDefault(type);
+                case SoundType.GambleWin:
+                    return gambleWinClip != null ? gambleWinClip : _synthClips.GetValueOrDefault(type);
+                case SoundType.GambleLose:
+                    return gambleLoseClip != null ? gambleLoseClip : _synthClips.GetValueOrDefault(type);
                 default:
                     return null;
             }
@@ -119,6 +128,9 @@ namespace Underpin.SlotGame.Audio
             _synthClips[SoundType.FreeSpinsTrigger] = CreateArpeggioClip("FreeSpins", new float[] { 440f, 554f, 659f, 880f, 1108f }, 0.15f);
             _synthClips[SoundType.CoinsCollect] = CreateToneClip("Coins", 1200f, 0.05f, WaveType.Sine);
             _synthClips[SoundType.Anticipation] = CreateSlideClip("Anticipation", 320f, 880f, 0.45f);
+            _synthClips[SoundType.GambleCardFlip] = CreateSlideClip("CardFlip", 400f, 750f, 0.12f);
+            _synthClips[SoundType.GambleWin] = CreateArpeggioClip("GambleWin", new float[] { 587f, 740f, 880f, 1174f }, 0.09f);
+            _synthClips[SoundType.GambleLose] = CreateSlideClip("GambleLose", 320f, 130f, 0.35f);
         }
 
         private enum WaveType { Sine, Square, Triangle, Noise }

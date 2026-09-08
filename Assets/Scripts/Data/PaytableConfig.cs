@@ -44,6 +44,13 @@ namespace Underpin.SlotGame.Data
         [Tooltip("Win amount multiplier threshold for Mega Win celebration.")]
         [SerializeField] private float megaWinMultiplierThreshold = 25f;
 
+        [Header("Gamble / Double-or-Nothing Feature")]
+        [Tooltip("Enables the optional Double-or-Nothing gamble minigame after standard winning spins.")]
+        [SerializeField] private bool isGambleEnabled = true;
+
+        [Tooltip("Maximum number of consecutive double-up gamble rounds allowed.")]
+        [SerializeField] private int maxGambleRounds = 5;
+
         // Public Accessors
         public IReadOnlyList<SymbolData> Symbols => symbols;
         public IReadOnlyList<PaylineData> Paylines => paylines;
@@ -55,6 +62,8 @@ namespace Underpin.SlotGame.Data
         public float FreeSpinsWinMultiplier => freeSpinsWinMultiplier;
         public float BigWinMultiplierThreshold => bigWinMultiplierThreshold;
         public float MegaWinMultiplierThreshold => megaWinMultiplierThreshold;
+        public bool IsGambleEnabled => isGambleEnabled;
+        public int MaxGambleRounds => maxGambleRounds;
 
         /// <summary>
         /// Populates default standard 5 paylines for a 3x3 slot grid if empty.

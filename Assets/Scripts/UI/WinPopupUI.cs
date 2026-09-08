@@ -21,6 +21,7 @@ namespace Underpin.SlotGame.UI
         [SerializeField] private TextMeshProUGUI winAmountText;
         [SerializeField] private TextMeshProUGUI subDetailText;
         [SerializeField] private Button dismissButton;
+        [SerializeField] private Button gambleButton;
         [SerializeField] private RectTransform bannerTransform;
 
         [Header("Animation Settings")]
@@ -29,6 +30,7 @@ namespace Underpin.SlotGame.UI
 
         private Action _onDismissedCallback;
         private Action<int> _onTallyTickCallback;
+        private Action _onGambleCallback;
         private Coroutine _displayRoutine;
         private Color _originalBannerColor = Color.white;
         private Vector3 _originalTitleScale = Vector3.one;
@@ -41,6 +43,13 @@ namespace Underpin.SlotGame.UI
             if (dismissButton != null)
             {
                 dismissButton.onClick.AddListener(HandleUserClick);
+            }
+
+            EnsureGambleButton();
+
+            if (gambleButton != null)
+            {
+                gambleButton.onClick.AddListener(HandleGambleClick);
             }
 
             if (popupBannerImage != null)
@@ -61,12 +70,66 @@ namespace Underpin.SlotGame.UI
             HideImmediate();
         }
 
-        public void ShowWin(int winAmount, bool isMegaWin, bool isBigWin, Action onComplete, Action<int> onTallyTick = null)
+        private void EnsureGambleButton()
         {
+            if (gambleButton == null && popupContainer != null)
+            {
+                Transform parentT = bannerTransform != null ? bannerTransform : popupContainer.transform;
+                GameObject btnObj = new GameObject("Btn_Gamble_Popup", typeof(RectTransform), typeof(Image), typeof(Button));
+                btnObj.transform.SetParent(parentT, false);
+
+                RectTransform rt = btnObj.GetComponent<RectTransform>();
+                rt.sizeDelta = new Vector2(260, 56);
+                rt.anchoredPosition = new Vector2(0, -145);
+
+                Image img = btnObj.GetComponent<Image>();
+                img.color = new Color(0.94f, 0.58f, 0.04f, 1.0f); // Radiant Gold
+
+                GameObject txtObj = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
+                txtObj.transform.SetParent(btnObj.transform, false);
+                TextMeshProUGUI tmp = txtObj.GetComponent<TextMeshProUGUI>();
+                tmp.text = "<color=#FFFFFF><b>GAMBLE (2X)</b></color>";
+                tmp.fontSize = 18;
+                tmp.alignment = TextAlignmentOptions.Center;
+                tmp.fontStyle = FontStyles.Bold;
+                tmp.raycastTarget = false;
+
+                RectTransform txtRt = txtObj.GetComponent<RectTransform>();
+                txtRt.anchorMin = Vector2.zero;
+                txtRt.anchorMax = Vector2.one;
+                txtRt.offsetMin = Vector2.zero;
+                txtRt.offsetMax = Vector2.zero;
+
+                gambleButton = btnObj.GetComponent<Button>();
+                var colors = gambleButton.colors;
+                colors.normalColor = img.color;
+                colors.highlightedColor = new Color(1f, 0.85f, 0.25f, 1f);
+                colors.pressedColor = new Color(0.72f, 0.42f, 0.02f, 1f);
+                gambleButton.colors = colors;
+
+                btnObj.SetActive(false);
+            }
+        }
+
+        public void ShowWin(int winAmount, bool isMegaWin, bool isBigWin, Action onComplete, Action<int> onTallyTick = null, Action onGamble = null)
+        {
+            EnsureGambleButton();
             _onDismissedCallback = onComplete;
             _onTallyTickCallback = onTallyTick;
+            _onGambleCallback = onGamble;
             _currentTargetAmount = winAmount;
             _isCounting = true;
+
+            if (gambleButton != null)
+            {
+                gambleButton.gameObject.SetActive(onGamble != null);
+                gambleButton.transform.localScale = Vector3.one;
+            }
+
+            if (subDetailText != null)
+            {
+                subDetailText.rectTransform.anchoredPosition = onGamble != null ? new Vector2(0, -65) : new Vector2(0, -90);
+            }
 
             gameObject.SetActive(true);
             if (popupContainer != null) popupContainer.SetActive(true);
@@ -169,6 +232,26 @@ namespace Underpin.SlotGame.UI
                 // Second click dismisses popup
                 Dismiss();
             }
+        }
+
+        public void HandleGambleClick()
+        {
+            _isCounting = false;
+            if (_displayRoutine != null)
+            {
+                StopCoroutine(_displayRoutine);
+                _displayRoutine = null;
+            }
+
+            Action gambleAction = _onGambleCallback;
+            _onGambleCallback = null;
+            _onDismissedCallback = null;
+            _onTallyTickCallback = null;
+
+            ResetVisualTransforms();
+            HideImmediate();
+
+            gambleAction?.Invoke();
         }
 
         public void Dismiss()

@@ -31,6 +31,8 @@ namespace Underpin.SlotGame.Core
         private GameState _currentState = GameState.Idle;
         private bool _isAutoSpinActive = false;
         private Coroutine _autoSpinRoutine;
+        private int _pendingGambleWinAmount = 0;
+        private Coroutine _postWinRoutine;
         [System.NonSerialized] private bool _isInitialized = false;
 
         public GameState CurrentState => _currentState;
@@ -82,6 +84,7 @@ namespace Underpin.SlotGame.Core
                 uiManager.OnIncreaseBetRequested += () => _economy.IncreaseBet();
                 uiManager.OnDecreaseBetRequested += () => _economy.DecreaseBet();
                 uiManager.OnMaxBetRequested += () => _economy.SetMaxBet();
+                uiManager.OnGambleRequested += StartGamble;
 
                 // Economy Bindings
                 _economy.OnBalanceChanged += uiManager.UpdateBalance;
@@ -171,18 +174,28 @@ namespace Underpin.SlotGame.Core
                 case GameState.WinCelebration:
                     uiManager.SetSpinInteractable(false);
                     uiManager.SetBetControlsInteractable(false);
-                    uiManager.SetStatusMessage("WINNER!");
+                    uiManager.SetGambleButtonVisible(paytableConfig.IsGambleEnabled && !_economy.IsInFreeSpins && !_isAutoSpinActive && _pendingGambleWinAmount > 0);
+                    uiManager.SetStatusMessage("WINNER! Press GAMBLE (2X) or SPIN/COLLECT!");
+                    break;
+
+                case GameState.Gamble:
+                    uiManager.SetSpinInteractable(false);
+                    uiManager.SetBetControlsInteractable(false);
+                    uiManager.SetGambleButtonVisible(false);
+                    uiManager.SetStatusMessage("Gamble Active: Double or Nothing!");
                     break;
 
                 case GameState.FreeSpins:
                     uiManager.SetSpinInteractable(false);
                     uiManager.SetBetControlsInteractable(false);
+                    uiManager.SetGambleButtonVisible(false);
                     uiManager.SetStatusMessage("FREE SPINS BONUS ACTIVE (2X)!");
                     break;
 
                 case GameState.OutOfFunds:
                     uiManager.SetSpinInteractable(false);
                     uiManager.SetBetControlsInteractable(true);
+                    uiManager.SetGambleButtonVisible(false);
                     uiManager.SetStatusMessage("Out of credits! Adjust bet or reset balance.");
                     StopAutoSpin();
                     break;
@@ -194,6 +207,20 @@ namespace Underpin.SlotGame.Core
             if (!_isInitialized || _economy == null || _rng == null)
             {
                 InitializeGame();
+            }
+
+            // If player spins with uncollected gamble win, automatically bank it
+            if (_pendingGambleWinAmount > 0)
+            {
+                _economy.AddPayout(_pendingGambleWinAmount);
+                _pendingGambleWinAmount = 0;
+                if (uiManager != null) uiManager.SetGambleButtonVisible(false);
+            }
+
+            if (_postWinRoutine != null)
+            {
+                StopCoroutine(_postWinRoutine);
+                _postWinRoutine = null;
             }
 
             if (_currentState != GameState.Idle && _currentState != GameState.FreeSpins)
@@ -223,7 +250,11 @@ namespace Underpin.SlotGame.Core
             OnSpinInitiated?.Invoke();
 
             // Reset UI win display for new spin
-            if (uiManager != null) uiManager.UpdateWin(0);
+            if (uiManager != null)
+            {
+                uiManager.UpdateWin(0);
+                uiManager.SetGambleButtonVisible(false);
+            }
 
             // Determine active multiplier
             float activeMultiplier = _economy.IsInFreeSpins ? paytableConfig.FreeSpinsWinMultiplier : 1.0f;
@@ -253,7 +284,8 @@ namespace Underpin.SlotGame.Core
             WinResult result = WinEvaluator.EvaluateGrid(grid, paytableConfig, _economy.CurrentBet, activeMultiplier);
             OnSpinResultsReady?.Invoke(result);
 
-            StartCoroutine(ProcessSpinResult(result));
+            if (_postWinRoutine != null) StopCoroutine(_postWinRoutine);
+            _postWinRoutine = StartCoroutine(ProcessSpinResult(result));
         }
 
         private IEnumerator ProcessSpinResult(WinResult result)
@@ -306,37 +338,73 @@ namespace Underpin.SlotGame.Core
                         while (!popupDone) yield return null;
                     }
                 }
-                else if (result.IsBigWin || result.IsMegaWin)
+                else if (_economy.IsInFreeSpins || _isAutoSpinActive)
                 {
-                    bool popupDone = false;
-                    if (uiManager != null && uiManager.WinPopup != null)
-                    {
-                        uiManager.WinPopup.ShowWin(winAmount, result.IsMegaWin, result.IsBigWin, 
-                            () => popupDone = true,
-                            (tallyVal) =>
-                            {
-                                if (uiManager != null)
-                                {
-                                    uiManager.UpdateWin(tallyVal);
-                                    uiManager.UpdateBalance(preWinBalance + tallyVal);
-                                }
-                            });
-
-                        while (!popupDone) yield return null;
-                    }
-
-                    _economy.AddPayout(winAmount);
-                    if (uiManager != null)
-                    {
-                        uiManager.UpdateWin(winAmount);
-                        uiManager.UpdateBalance(_economy.Balance);
-                    }
-                }
-                else
-                {
+                    // Auto-bank directly during automated modes
                     _economy.AddPayout(winAmount);
                     if (uiManager != null) uiManager.UpdateWin(winAmount);
                     yield return new WaitForSeconds(winCelebrationDelay);
+                }
+                else
+                {
+                    // Standard Manual Win with Gamble Opportunity
+                    _pendingGambleWinAmount = winAmount;
+
+                    if (result.IsBigWin || result.IsMegaWin)
+                    {
+                        bool popupDone = false;
+                        if (uiManager != null && uiManager.WinPopup != null)
+                        {
+                            uiManager.WinPopup.ShowWin(winAmount, result.IsMegaWin, result.IsBigWin, 
+                                onComplete: () => popupDone = true,
+                                onTallyTick: (tallyVal) =>
+                                {
+                                    if (uiManager != null)
+                                    {
+                                        uiManager.UpdateWin(tallyVal);
+                                        uiManager.UpdateBalance(preWinBalance + tallyVal);
+                                    }
+                                },
+                                onGamble: () =>
+                                {
+                                    popupDone = true;
+                                    StartGamble();
+                                });
+
+                            while (!popupDone) yield return null;
+                        }
+                    }
+                    else
+                    {
+                        if (uiManager != null) uiManager.UpdateWin(winAmount);
+                    }
+
+                    // If Gamble was already triggered by user click, yield return
+                    if (_currentState == GameState.Gamble)
+                    {
+                        yield break;
+                    }
+
+                    // Present Gamble HUD opportunity
+                    if (paytableConfig.IsGambleEnabled && uiManager != null)
+                    {
+                        uiManager.SetGambleButtonVisible(true);
+                        uiManager.SetStatusMessage("WINNER! Press GAMBLE (2X) or SPIN/COLLECT.");
+                    }
+
+                    yield return new WaitForSeconds(winCelebrationDelay);
+
+                    // If player hasn't gambled, auto-bank the win
+                    if (_pendingGambleWinAmount > 0 && _currentState == GameState.WinCelebration)
+                    {
+                        _economy.AddPayout(_pendingGambleWinAmount);
+                        _pendingGambleWinAmount = 0;
+                        if (uiManager != null)
+                        {
+                            uiManager.SetGambleButtonVisible(false);
+                            uiManager.UpdateBalance(_economy.Balance);
+                        }
+                    }
                 }
             }
             else
@@ -360,6 +428,56 @@ namespace Underpin.SlotGame.Core
             else
             {
                 SetState(_economy.CanAffordSpin() ? GameState.Idle : GameState.OutOfFunds);
+            }
+        }
+
+        public void StartGamble()
+        {
+            if (_pendingGambleWinAmount <= 0 || _economy.IsInFreeSpins)
+            {
+                return;
+            }
+
+            if (_postWinRoutine != null)
+            {
+                StopCoroutine(_postWinRoutine);
+                _postWinRoutine = null;
+            }
+
+            if (uiManager != null && uiManager.WinPopup != null)
+            {
+                uiManager.WinPopup.Dismiss();
+            }
+
+            int gamblePot = _pendingGambleWinAmount;
+            _pendingGambleWinAmount = 0;
+
+            SetState(GameState.Gamble);
+
+            if (uiManager != null)
+            {
+                uiManager.SetGambleButtonVisible(false);
+                uiManager.ShowGamble(gamblePot, paytableConfig.MaxGambleRounds,
+                    onCollect: (finalWon) =>
+                    {
+                        _economy.AddPayout(finalWon);
+                        if (uiManager != null)
+                        {
+                            uiManager.UpdateWin(finalWon);
+                            uiManager.UpdateBalance(_economy.Balance);
+                            uiManager.SetGambleButtonVisible(false);
+                        }
+                        SetState(_economy.CanAffordSpin() ? GameState.Idle : GameState.OutOfFunds);
+                    },
+                    onBust: () =>
+                    {
+                        if (uiManager != null)
+                        {
+                            uiManager.UpdateWin(0);
+                            uiManager.SetGambleButtonVisible(false);
+                        }
+                        SetState(_economy.CanAffordSpin() ? GameState.Idle : GameState.OutOfFunds);
+                    });
             }
         }
 
